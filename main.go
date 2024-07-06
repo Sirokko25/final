@@ -1,42 +1,46 @@
 package main
 
 import (
-	"final/addtask"
-	"final/changetask"
-	"final/checktask"
-	"final/completedtask"
-	"final/database"
-	"final/deletetask"
-	"final/nextdate"
-	"final/receivetasks"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
+
+	"final/database"
+	"final/handlers"
+	"final/tests"
 )
 
 func main() {
-	r := chi.NewRouter()
-	//для 7 задачи
-	r.Delete("/api/task", deletetask.Deletetask)
-	r.Post("/api/task/done", completedtask.Completedtask)
-	//для 6 задачи
-	r.Get("/api/task", checktask.Checktask)
-	r.Put("/api/task", changetask.Changetask)
-	//для 5 задания
-	r.Get("/api/tasks", receivetasks.Receivetasks)
-	// для 4 задания
-	r.Post("/api/task", addtask.Addtask)
-	// для 3 задания
-	r.Get("/api/nextdate", nextdate.NextDate)
-	// для 2 задания
-	database.Createdatabase()
-	//для 1 задания
-	http.Handle("/css/", http.StripPrefix("/css", http.FileServer(http.Dir("./web/css/"))))
-	http.Handle("/js/", http.StripPrefix("/js", http.FileServer(http.Dir("./web/js/"))))
-	http.Handle("/", http.StripPrefix("/", http.FileServer(http.Dir("./web"))))
 
-	if err := http.ListenAndServe(":7540", r); err != nil {
+	port := os.Getenv("TODO_PORT")
+	if port == "" {
+		port = strconv.Itoa(tests.Port)
+	}
+
+	db, err := database.Createdatabase()
+	if err != nil {
+		log.Fatalf("Ошибка инициализации базы данных: %v", err)
+	}
+	defer db.Close()
+
+	r := chi.NewRouter()
+	r.Delete("/api/task", handlers.DeleteTask(db))
+	r.Post("/api/task/done", handlers.TaskDone(db))
+	r.Get("/api/task", handlers.GetTask(db))
+	r.Put("/api/task", handlers.ChangeTask(db))
+	r.Get("/api/tasks", handlers.ReceiveTasks(db))
+	r.Post("/api/task", handlers.AddTask(db))
+	r.Get("/api/nextdate", handlers.NextDate(db))
+
+	r.Handle("/*", http.FileServer(http.Dir("./web")))
+
+	log.Printf("Сервер слушает порт %s", port)
+
+	if err := http.ListenAndServe(":"+port, r); err != nil {
 		fmt.Printf("Ошибка при запуске сервера: %s", err.Error())
 		return
 	}

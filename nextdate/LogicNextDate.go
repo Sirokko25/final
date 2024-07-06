@@ -2,34 +2,18 @@ package nextdate
 
 import (
 	"errors"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"final/constant"
 )
 
-func NextDate(w http.ResponseWriter, r *http.Request) {
-	// получаю данные из запроса
-	now := r.FormValue("now")
-	date := r.FormValue("date")
-	repeat := r.FormValue("repeat")
-		//проверка корректности полученных данных
-		if repeat == "" || now == "" || date == "" {
-			http.Error(w, "Указаны некорректные данные в запросе", http.StatusBadRequest)
-			return
-		}
-	nextdate, err := CalcNextDate(now, date, repeat)
-	if err != nil {
-		http.Error(w, "Указаны некорректные данные в запросе", http.StatusBadRequest)
-		return
-	}
-	w.Write([]byte(nextdate))
-}
-func CalcNextDate (now string, date string, repeat string) (string, error){
+func CalcNextDate(now, date, repeat string) (string, error) {
 	// получаю правила повторения задач
-	rule, err := Parsingrepeatrules(repeat)
+	rule, err := ParseRepeatRules(repeat)
 	if err != nil {
-		return "" , errors.New("Формат правила повторения не соблюден")
+		return "", errors.New("Формат правила повторения не соблюден")
 	}
 	// парсинг полученных дат
 	nowTime, dateTime, err := ParsingDates(now, date)
@@ -38,21 +22,21 @@ func CalcNextDate (now string, date string, repeat string) (string, error){
 	}
 	//вычисление дня переноса задачи
 	if rule[0] == "d" {
-		resultDate, err := DaysCalculatingdate(rule, nowTime, dateTime)
+		resultDate, err := CountDateRepeatDay(rule, nowTime, dateTime)
 		if err != nil {
-			return "" , errors.New("Формат правила повторения не соблюден")
+			return "", errors.New("Формат правила повторения не соблюден")
 		}
 		return resultDate, nil
 	} else {
-		resultDate, err := YearsCalculatingdate(nowTime, dateTime)
+		resultDate, err := CountDateRepeatRule(nowTime, dateTime)
 		if err != nil {
-			return "" , errors.New("Формат правила повторения не соблюден")
+			return "", errors.New("Формат правила повторения не соблюден")
 		}
 		return resultDate, nil
 	}
 }
 
-func Parsingrepeatrules(rule string) ([]string, error) {
+func ParseRepeatRules(rule string) ([]string, error) {
 	repeatRule := strings.Split(rule, " ")
 	if (repeatRule[0] == "d" && len(repeatRule) == 2) || (repeatRule[0] == "y" && len(repeatRule) == 1) {
 		return repeatRule, nil
@@ -61,19 +45,19 @@ func Parsingrepeatrules(rule string) ([]string, error) {
 	}
 }
 
-func ParsingDates(now string, date string) (time.Time, time.Time, error) {
-	nowTime, err := time.Parse("20060102", now)
+func ParsingDates(now, date string) (time.Time, time.Time, error) {
+	nowTime, err := time.Parse(constant.ParseDate, now)
 	if err != nil {
 		return time.Time{}, time.Time{}, errors.New("Некорректный формат даты")
 	}
-	dateTime, err := time.Parse("20060102", date)
+	dateTime, err := time.Parse(constant.ParseDate, date)
 	if err != nil {
 		return time.Time{}, time.Time{}, errors.New("Некорректный формат даты")
 	}
 	return nowTime, dateTime, nil
 }
 
-func DaysCalculatingdate(rules []string, nowTime time.Time, dateTime time.Time) (string, error) {
+func CountDateRepeatDay(rules []string, nowTime, dateTime time.Time) (string, error) {
 	subtraction := dateTime.Sub(nowTime)
 	days, err := strconv.Atoi(rules[1])
 	if (err != nil) || (days > 400) {
@@ -81,19 +65,19 @@ func DaysCalculatingdate(rules []string, nowTime time.Time, dateTime time.Time) 
 	}
 	if int(subtraction.Hours()) > 0 {
 		dateTime = dateTime.AddDate(0, 0, days)
-		return dateTime.Format("20060102"), nil
+		return dateTime.Format(constant.ParseDate), nil
 	}
 	for int(subtraction.Hours()) <= 0 {
 		dateTime = dateTime.AddDate(0, 0, days)
 		subtraction += time.Duration(days * 24 * int(time.Hour))
 	}
-	return dateTime.Format("20060102"), nil
+	return dateTime.Format(constant.ParseDate), nil
 }
 
-func YearsCalculatingdate(nowTime time.Time, dateTime time.Time) (string, error) {
+func CountDateRepeatRule(nowTime, dateTime time.Time) (string, error) {
 	//определяем високосный год или нет
-	ageStringdate := dateTime.Format("20060102")
-	ageStringnow := nowTime.Format("20060102")
+	ageStringdate := dateTime.Format(constant.ParseDate)
+	ageStringnow := nowTime.Format(constant.ParseDate)
 	resDate, _ := strconv.Atoi(ageStringdate)
 	resNow, _ := strconv.Atoi(ageStringnow)
 	ageDate := int(resDate) / int(10000)
@@ -101,7 +85,7 @@ func YearsCalculatingdate(nowTime time.Time, dateTime time.Time) (string, error)
 
 	if ageDate >= ageNow {
 		dateTime = dateTime.AddDate(1, 0, 0)
-		return dateTime.Format("20060102"), nil
+		return dateTime.Format(constant.ParseDate), nil
 	}
 	for ageDate < ageNow {
 		dateTime = dateTime.AddDate(1, 0, 0)
@@ -111,5 +95,5 @@ func YearsCalculatingdate(nowTime time.Time, dateTime time.Time) (string, error)
 			ageDate += 1
 		}
 	}
-	return dateTime.Format("20060102"), nil
+	return dateTime.Format(constant.ParseDate), nil
 }

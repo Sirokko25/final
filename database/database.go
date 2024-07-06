@@ -7,12 +7,14 @@ import (
 	"path/filepath"
 
 	_ "github.com/mattn/go-sqlite3"
+
 )
 
-func Createdatabase() {
+func Createdatabase() (*sql.DB, error) {
 	appPath, err := os.Executable()
 	if err != nil {
 		log.Fatal(err)
+		return nil, err
 	}
 	dbFile := filepath.Join(filepath.Dir(appPath), "scheduler.db")
 	_, err = os.Stat(dbFile)
@@ -23,13 +25,12 @@ func Createdatabase() {
 	}
 	// если install равен true, после открытия БД требуется выполнить
 	// sql-запрос с CREATE TABLE и CREATE INDEX
+	db, err := sql.Open("sqlite3", "scheduler.db")
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
 	if install {
-		db, err := sql.Open("sqlite3", "scheduler.db")
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
-		defer db.Close()
 		createTableSql := `CREATE TABLE IF NOT EXISTS scheduler (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			date CHAR(8) NOT NULL DEFAULT "",
@@ -41,6 +42,9 @@ func Createdatabase() {
 		_, err = db.Exec(createTableSql)
 		if err != nil {
 			log.Fatal(err)
+			return nil, err
 		}
+		return db, nil
 	}
+	return db, nil
 }
