@@ -21,11 +21,12 @@ func main() {
 		port = strconv.Itoa(tests.Port)
 	}
 
-	db, err := database.Createdatabase()
-	if err != nil {
-		log.Fatalf("Ошибка инициализации базы данных: %v", err)
-	}
-	defer db.Close()
+	db, err := database.Createdatabase() // 4. Здесь создается экземпляр DB
+	// if err != nil {
+	// 	log.Fatalf("Ошибка инициализации базы данных: %v", err)
+	// }
+	// defer db.Close()
+	handlers := handlers.Handlers{db} // 5. Здесь создается экземпляр Handlers
 
 	r := chi.NewRouter()
 	r.Delete("/api/task", handlers.DeleteTask(db))
@@ -33,7 +34,7 @@ func main() {
 	r.Get("/api/task", handlers.GetTask(db))
 	r.Put("/api/task", handlers.ChangeTask(db))
 	r.Get("/api/tasks", handlers.ReceiveTasks(db))
-	r.Post("/api/task", handlers.AddTask(db))
+	r.Post("/api/task", handlers.AddTask()) // 6. Здесь вызывается метод от экземпляра Handlers
 	r.Get("/api/nextdate", handlers.NextDate(db))
 
 	r.Handle("/*", http.FileServer(http.Dir("./web")))

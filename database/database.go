@@ -10,7 +10,11 @@ import (
 
 )
 
-func Createdatabase() (*sql.DB, error) {
+type DB struct { // 1. Структура DB хранит в себе коннект к базе данных
+	conn *sql.DB
+}
+
+func Createdatabase() (DB, error) { // 2. Функция CreateDB создает экземпляр структуры DB
 	appPath, err := os.Executable()
 	if err != nil {
 		log.Fatal(err)
@@ -28,7 +32,7 @@ func Createdatabase() (*sql.DB, error) {
 	db, err := sql.Open("sqlite3", "scheduler.db")
 	if err != nil {
 		log.Fatal(err)
-		return nil, err
+		return DB{nil}, err
 	}
 	if install {
 		createTableSql := `CREATE TABLE IF NOT EXISTS scheduler (
@@ -42,9 +46,23 @@ func Createdatabase() (*sql.DB, error) {
 		_, err = db.Exec(createTableSql)
 		if err != nil {
 			log.Fatal(err)
-			return nil, err
+			return DB{nil}, err
 		}
-		return db, nil
+		return DB{db}, nil
 	}
-	return db, nil
+	return DB{db}, nil
+}
+
+func (db *DB) Addtasktodb(task task.Task) (int64, error) { // 3. Функция AddTaskToDB становится методом структуры DB, и получает коннект из неё
+	query := `INSERT INTO scheduler (date, title, comment, repeat) VALUES (?, ?, ?, ?)`
+	res, err := db.conn.Exec(query, task.Date, task.Title, task.Comment, task.Repeat)
+	if err != nil {
+		return 0, errors.New("Ошибка добавления задачи")
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, errors.New("Ошибка добавления задачи")
+	}
+	return id, nil
 }
