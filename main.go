@@ -9,8 +9,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"final/database"
 	"final/handlers"
+	"final/storage"
 	"final/tests"
 )
 
@@ -21,20 +21,21 @@ func main() {
 		port = strconv.Itoa(tests.Port)
 	}
 
-	db, err := database.Createdatabase()
+	db, err := storage.Createdatabase()
 	if err != nil {
 		log.Fatalf("Ошибка инициализации базы данных: %v", err)
 	}
-	defer db.Close()
+
+	handlers := handlers.Handlers{db}
 
 	r := chi.NewRouter()
-	r.Delete("/api/task", handlers.DeleteTask(db))
-	r.Post("/api/task/done", handlers.TaskDone(db))
-	r.Get("/api/task", handlers.GetTask(db))
-	r.Put("/api/task", handlers.ChangeTask(db))
-	r.Get("/api/tasks", handlers.ReceiveTasks(db))
-	r.Post("/api/task", handlers.AddTask(db))
-	r.Get("/api/nextdate", handlers.NextDate(db))
+	r.Delete("/api/task", handlers.DeleteTask())
+	r.Post("/api/task/done", handlers.TaskDone())
+	r.Get("/api/task", handlers.GetTask())
+	r.Put("/api/task", handlers.ChangeTask())
+	r.Get("/api/tasks", handlers.ReceiveTasks())
+	r.Post("/api/task", handlers.AddTask())
+	r.Get("/api/nextdate", handlers.NextDate())
 
 	r.Handle("/*", http.FileServer(http.Dir("./web")))
 
