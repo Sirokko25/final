@@ -5,14 +5,16 @@ import (
 	"net/http"
 	"time"
 
-	"final/constant"
 	"final/nextdate"
 	"final/storage"
 	"final/task"
+
 )
 
+const ParseDate = "20060102"
+
 type Handlers struct {
-	Db storage.DB
+	TaskStorage storage.DB
 }
 
 func (h *Handlers) AddTask() http.HandlerFunc {
@@ -51,7 +53,7 @@ func (h *Handlers) AddTask() http.HandlerFunc {
 			json.NewEncoder(w).Encode(response)
 			return
 		}
-		id, err := h.Db.Addtasktodb(taskmod)
+		id, err := h.TaskStorage.Addtasktodb(taskmod)
 		if err != nil {
 			response := map[string]interface{}{
 				"error": err,
@@ -110,7 +112,7 @@ func (h *Handlers) ChangeTask() http.HandlerFunc {
 			json.NewEncoder(w).Encode(response)
 			return
 		}
-		errstr = h.Db.Update(task)
+		errstr = h.TaskStorage.Update(task)
 		if errstr != "" {
 			response := map[string]interface{}{
 				"error": errstr,
@@ -137,7 +139,7 @@ func (h *Handlers) GetTask() http.HandlerFunc {
 			json.NewEncoder(w).Encode(response)
 			return
 		}
-		task, err := h.Db.Findtask(id)
+		task, err := h.TaskStorage.Findtask(id)
 		if err != "" {
 			response := map[string]interface{}{
 				"error": err,
@@ -158,14 +160,14 @@ func (h *Handlers) TaskDone() http.HandlerFunc {
 			http.Error(w, `{"error": "Не указан индентификатор"}`, http.StatusInternalServerError)
 			return
 		}
-		task, err := h.Db.Findtask(id)
+		task, err := h.TaskStorage.Findtask(id)
 		if err != "" {
 			http.Error(w, `{"error": "Задача не найдена"}`, http.StatusInternalServerError)
 			return
 		}
 		if task.Repeat == "" {
 			// Удаляем одноразовую задачу
-			err = h.Db.Deletetask(id)
+			err = h.TaskStorage.DeleteQuery(id)
 			if err != "" {
 				http.Error(w, `{"error": "Ошибка удаления задачи"}`, http.StatusInternalServerError)
 				return
@@ -173,7 +175,7 @@ func (h *Handlers) TaskDone() http.HandlerFunc {
 		} else {
 			// Рассчитываем следующую дату для периодической задачи
 			now := time.Now()
-			timeNow := now.Format(constant.ParseDate)
+			timeNow := now.Format(ParseDate)
 			date, errnotstr := nextdate.CalcNextDate(timeNow, task.Date, task.Repeat)
 			if errnotstr != nil {
 				http.Error(w, `{"error": "Ошибка вычисления следующей даты"}`, http.StatusInternalServerError)
@@ -181,7 +183,7 @@ func (h *Handlers) TaskDone() http.HandlerFunc {
 			}
 
 			// Обновляем дату задачи
-			err = h.Db.Updatetask(date, id)
+			err = h.TaskStorage.Updatetask(date, id)
 			if err != "" {
 				http.Error(w, `{"error": "Ошибка обновления задачи"}`, http.StatusInternalServerError)
 				return
@@ -200,7 +202,7 @@ func (h *Handlers) DeleteTask() http.HandlerFunc {
 			http.Error(w, `{"error": "Не указан индентификатор"}`, http.StatusInternalServerError)
 			return
 		}
-		err := h.Db.DeleteQuery(id)
+		err := h.TaskStorage.DeleteQuery(id)
 		if err != "" {
 			http.Error(w, `{"error": "Ошибка удаления задачи"}`, http.StatusInternalServerError)
 			return
@@ -234,7 +236,7 @@ func (h *Handlers) ReceiveTasks() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 
-		tasks, err := h.Db.GetTasks()
+		tasks, err := h.TaskStorage.GetTasks()
 		if err != nil {
 			response := map[string]interface{}{
 				"error": err,

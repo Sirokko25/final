@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"final/constant"
 )
+
+const ParseDate = "20060102"
 
 func CalcNextDate(now, date, repeat string) (string, error) {
 	// получаю правила повторения задач
@@ -46,11 +46,11 @@ func ParseRepeatRules(rule string) ([]string, error) {
 }
 
 func ParsingDates(now, date string) (time.Time, time.Time, error) {
-	nowTime, err := time.Parse(constant.ParseDate, now)
+	nowTime, err := time.Parse(ParseDate, now)
 	if err != nil {
 		return time.Time{}, time.Time{}, errors.New("Некорректный формат даты")
 	}
-	dateTime, err := time.Parse(constant.ParseDate, date)
+	dateTime, err := time.Parse(ParseDate, date)
 	if err != nil {
 		return time.Time{}, time.Time{}, errors.New("Некорректный формат даты")
 	}
@@ -65,19 +65,19 @@ func CountDateRepeatDay(rules []string, nowTime, dateTime time.Time) (string, er
 	}
 	if int(subtraction.Hours()) > 0 {
 		dateTime = dateTime.AddDate(0, 0, days)
-		return dateTime.Format(constant.ParseDate), nil
+		return dateTime.Format(ParseDate), nil
 	}
 	for int(subtraction.Hours()) <= 0 {
 		dateTime = dateTime.AddDate(0, 0, days)
 		subtraction += time.Duration(days * 24 * int(time.Hour))
 	}
-	return dateTime.Format(constant.ParseDate), nil
+	return dateTime.Format(ParseDate), nil
 }
 
 func CountDateRepeatRule(nowTime, dateTime time.Time) (string, error) {
 	//определяем високосный год или нет
-	ageStringdate := dateTime.Format(constant.ParseDate)
-	ageStringnow := nowTime.Format(constant.ParseDate)
+	ageStringdate := dateTime.Format(ParseDate)
+	ageStringnow := nowTime.Format(ParseDate)
 	resDate, _ := strconv.Atoi(ageStringdate)
 	resNow, _ := strconv.Atoi(ageStringnow)
 	ageDate := int(resDate) / int(10000)
@@ -85,7 +85,7 @@ func CountDateRepeatRule(nowTime, dateTime time.Time) (string, error) {
 
 	if ageDate >= ageNow {
 		dateTime = dateTime.AddDate(1, 0, 0)
-		return dateTime.Format(constant.ParseDate), nil
+		return dateTime.Format(ParseDate), nil
 	}
 	for ageDate < ageNow {
 		dateTime = dateTime.AddDate(1, 0, 0)
@@ -95,5 +95,5 @@ func CountDateRepeatRule(nowTime, dateTime time.Time) (string, error) {
 			ageDate += 1
 		}
 	}
-	return dateTime.Format(constant.ParseDate), nil
+	return dateTime.Format(ParseDate), nil
 }

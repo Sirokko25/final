@@ -9,9 +9,10 @@ import (
 
 	_ "github.com/mattn/go-sqlite3"
 
-	"final/constant"
 	"final/task"
 )
+
+const Limit = 50
 
 type DB struct {
 	conn *sql.DB
@@ -86,15 +87,6 @@ func (db *DB) DeleteQuery(id string) string {
 	return ""
 }
 
-func (db *DB) Deletetask(id string) string {
-	deleteQuery := `DELETE FROM scheduler WHERE id = ?`
-	_, err := db.conn.Exec(deleteQuery, id)
-	if err != nil {
-		return "Ошибка удаления задачи"
-	}
-	return ""
-}
-
 func (db *DB) Update(task task.Task) string {
 	query := `UPDATE scheduler SET date = ?, title = ?, comment = ?, repeat = ? WHERE id = ?`
 	res, err := db.conn.Exec(query, task.Date, task.Title, task.Comment, task.Repeat, task.ID)
@@ -129,7 +121,7 @@ func (db *DB) Findtask(id string) (task.Task, string) {
 }
 
 func (db *DB) GetTasks() ([]task.Task, error) {
-	rows, err := db.conn.Query(`SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT :limit`, sql.Named("limit", constant.Limit))
+	rows, err := db.conn.Query(`SELECT id, date, title, comment, repeat FROM scheduler ORDER BY date LIMIT :limit`, sql.Named("limit", Limit))
 	if err != nil {
 		return nil, errors.New("Ошибка выполнения запроса: ")
 	}

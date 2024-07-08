@@ -4,9 +4,11 @@ import (
 	"errors"
 	"time"
 
-	"final/constant"
 	"final/nextdate"
+
 )
+
+const ParseDate = "20060102"
 
 type Task struct {
 	ID      string `json:"id"`
@@ -27,19 +29,19 @@ func (t Task) Checkdate() (Task, error) {
 
 	now := time.Now()
 	if t.Date == "" {
-		t.Date = now.Format(constant.ParseDate)
+		t.Date = now.Format(ParseDate)
 		return t, nil
 	} else {
-		date, err := time.Parse(constant.ParseDate, t.Date)
+		date, err := time.Parse(ParseDate, t.Date)
 		if err != nil {
 			return t, errors.New("Неправильный формат даты")
 		}
 		if date.Before(now) {
 			if t.Repeat == "" {
-				t.Date = now.Format(constant.ParseDate)
+				t.Date = now.Format(ParseDate)
 				return t, nil
 			} else {
-				nowtime := now.Format(constant.ParseDate)
+				nowtime := now.Format(ParseDate)
 				if nowtime != t.Date {
 					nextDate, err := nextdate.CalcNextDate(nowtime, t.Date, t.Repeat)
 					if err != nil {
@@ -60,7 +62,7 @@ func (t Task) Checkdate() (Task, error) {
 func (t Task) Countdate() error {
 	if t.Repeat != "" {
 		now := time.Now()
-		nowtime := now.Format(constant.ParseDate)
+		nowtime := now.Format(ParseDate)
 		nextDate, err := nextdate.CalcNextDate(nowtime, t.Date, t.Repeat)
 		if err != nil {
 			return errors.New("Ошибка вычисления даты")
